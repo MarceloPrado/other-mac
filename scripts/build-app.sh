@@ -29,7 +29,7 @@ chmod 755 "$MACOS_DIR/OtherMac" "$RESOURCES_DIR/m1ddc"
 
 for resource_bundle in "$ROOT_DIR"/.build/release/*.bundle; do
   if [ -d "$resource_bundle" ]; then
-    cp -R "$resource_bundle" "$RESOURCES_DIR/"
+    cp -R "$resource_bundle" "$APP_DIR/"
   fi
 done
 
