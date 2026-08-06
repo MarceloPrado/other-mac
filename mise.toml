@@ -1,0 +1,22 @@
+[tools]
+swift = "system"
+
+[tasks.test]
+description = "Run the project test suite"
+run = "swift test"
+
+[tasks.check]
+description = "Alias for test"
+run = "swift test"
+
+[tasks.build]
+description = "Build the native Other Mac app bundle"
+run = "sh scripts/build-app.sh"
+
+[tasks.start]
+description = "Build and open Other Mac"
+run = "sh scripts/build-app.sh && open 'dist/Other Mac.app'"
+
+[tasks.try]
+description = "Test, detect displays, and launch Other Mac"
+run = "sh scripts/try.sh"
