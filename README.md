@@ -14,18 +14,21 @@ There is no account, analytics, or background service.
 ## Install
 
 1. Download `Other-Mac.dmg` from the latest GitHub release.
-2. Open it and drag **Other Mac** to Applications.
-3. Try to open Other Mac once. macOS will block it because the app is not
-   notarized.
-4. Open **System Settings → Privacy & Security**, scroll to Security, and click
-   **Open Anyway**.
-5. Open Other Mac again, choose the monitor input used by your second computer,
-   and record a shortcut.
+2. Try to open the DMG. macOS will block it because it is not notarized.
+3. Open **System Settings → Privacy & Security**, scroll to Security, and click
+   **Open Anyway** for `Other-Mac.dmg`.
+4. The disk image will mount. Drag **Other Mac** to Applications.
+5. Open the copied app from Applications or Spotlight. macOS will block it
+   again.
+6. Return to **System Settings → Privacy & Security** and click **Open Anyway**
+   for the **Other Mac** app.
+7. Open Other Mac, choose the monitor input used by your second computer, and
+   record a shortcut.
 
 Other Mac uses a free ad hoc signature. This verifies the app bundle is
-internally consistent, but it does not identify me to Gatekeeper. The one-time
-Open Anyway step is required because I do not pay for an Apple Developer
-Program membership. Apple explains the process in
+internally consistent, but it does not identify me to Gatekeeper. Gatekeeper
+asks you to approve the downloaded DMG and the copied app separately because
+the release is not notarized. Apple explains the process in
 [Open apps safely on your Mac](https://support.apple.com/en-gb/102445).
 
 ## Requirements
