@@ -75,12 +75,7 @@ enum LegacyShortcutParser {
 
 @MainActor
 enum LegacyShortcutMigrator {
-  static func migrateIfNeeded(
-    applicationSupportURL: URL = FileManager.default.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    )[0]
-  ) {
+  static func migrateIfNeeded(applicationSupportURL: URL) {
     guard KeyboardShortcuts.getShortcut(for: .swapToOtherMac) == nil else {
       return
     }

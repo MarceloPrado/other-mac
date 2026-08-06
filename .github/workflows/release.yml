@@ -58,6 +58,15 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: sh scripts/package-dmg.sh
 
+      - name: Verify the packaged app
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sh scripts/verify-app.sh "dist/Other Mac.app" "$RELEASE_VERSION"
+          sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" clean
+          sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" legacy
+          hdiutil verify dist/Other-Mac.dmg
+
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

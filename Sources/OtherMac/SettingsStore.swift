@@ -6,12 +6,18 @@ struct SettingsStore {
 
   init(
     fileManager: FileManager = .default,
-    applicationSupportURL: URL? = nil
+    applicationSupportURL: URL? = nil,
+    environment: [String: String] = ProcessInfo.processInfo.environment
   ) {
     self.fileManager = fileManager
     self.applicationSupportURL =
       applicationSupportURL
-      ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+      ?? environment["OTHER_MAC_APPLICATION_SUPPORT_DIRECTORY"].flatMap {
+        $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true)
+      }
+      ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+      ?? fileManager.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support", isDirectory: true)
   }
 
   var settingsURL: URL {

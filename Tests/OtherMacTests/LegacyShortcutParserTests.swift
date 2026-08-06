@@ -4,6 +4,7 @@ import Testing
 
 @testable import OtherMac
 
+@MainActor
 struct LegacyShortcutParserTests {
   @Test
   func parsesTheShortcutUsedByTheTestedElectronConfiguration() {
@@ -19,5 +20,6 @@ struct LegacyShortcutParserTests {
 
     #expect(shortcut?.key == .space)
     #expect(shortcut?.modifiers == [.option])
+    #expect(shortcut.map(ShortcutDisplayName.make) == "⌥Space")
   }
 }

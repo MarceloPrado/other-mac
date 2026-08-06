@@ -45,4 +45,20 @@ struct SettingsStoreTests {
 
     try FileManager.default.removeItem(at: root)
   }
+
+  @Test
+  func environmentOverrideIsolatesLifecyclePreferences() throws {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let store = SettingsStore(
+      environment: ["OTHER_MAC_APPLICATION_SUPPORT_DIRECTORY": root.path]
+    )
+
+    try store.save(AppSettings(completedOnboarding: true))
+
+    #expect(store.settingsURL.path.hasPrefix(root.path))
+    #expect(store.load().completedOnboarding)
+
+    try FileManager.default.removeItem(at: root)
+  }
 }

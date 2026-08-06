@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "launchAtLogin": false,
+  "showMenuBarIcon": true,
+  "completedOnboarding": false,
+  "displayConfigs": {
+    "7406FFA1-7562-4A2F-B764-55FAA7E45CCF": {
+      "enabled": true,
+      "name": "DELL U3223QE",
+      "targetInput": 27,
+      "lastKnownIndex": 1,
+      "lastSwitchedAt": "2026-08-06T12:46:29Z"
+    }
+  }
+}

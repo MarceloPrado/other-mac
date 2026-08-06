@@ -91,7 +91,7 @@ struct PopoverView: View {
     HStack {
       Spacer()
       if let shortcut = KeyboardShortcuts.getShortcut(for: .swapToOtherMac) {
-        Text("or press \(shortcut.description)")
+        Text("or press \(ShortcutDisplayName.make(shortcut))")
       } else {
         Button("Add a keyboard shortcut") {
           openSettings()

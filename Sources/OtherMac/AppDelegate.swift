@@ -16,7 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       statusBar.show()
     }
 
-    LegacyShortcutMigrator.migrateIfNeeded()
+    LegacyShortcutMigrator.migrateIfNeeded(
+      applicationSupportURL: model.applicationSupportURL
+    )
     KeyboardShortcuts.onKeyUp(for: .swapToOtherMac) { [weak model] in
       Task { @MainActor in
         await model?.swap()
@@ -24,10 +26,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     model.start()
+    model.reconcileLaunchAtLogin()
 
     if !model.settings.completedOnboarding {
       DispatchQueue.main.async {
         statusBar.showOnboarding()
+      }
+    }
+
+    if let resultPath = ProcessInfo.processInfo.environment[
+      "OTHER_MAC_LIFECYCLE_SMOKE_RESULT"
+    ], !resultPath.isEmpty {
+      let iterations =
+        ProcessInfo.processInfo.environment["OTHER_MAC_LIFECYCLE_SMOKE_ITERATIONS"]
+        .flatMap(Int.init) ?? 20
+      Task {
+        let result = await statusBar.runLifecycleSmoke(iterations: iterations)
+        try? result.write(
+          to: URL(fileURLWithPath: resultPath),
+          atomically: true,
+          encoding: .utf8
+        )
       }
     }
   }
@@ -42,5 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationWillTerminate(_ notification: Notification) {
     KeyboardShortcuts.disable(.swapToOtherMac)
+  }
+
+  func applicationShouldTerminateAfterLastWindowClosed(
+    _ sender: NSApplication
+  ) -> Bool {
+    false
   }
 }

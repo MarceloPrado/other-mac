@@ -1,7 +1,7 @@
 import Foundation
 
 enum M1DDCParser {
-  private static let displayLine = try! NSRegularExpression(
+  private static let displayLine = try? NSRegularExpression(
     pattern: #"^\[(\d+)]\s+(.+?)\s+\(([^)]+)\)$"#
   )
 
@@ -14,6 +14,7 @@ enum M1DDCParser {
   private static func parseDisplayLine(_ line: String) -> DetectedDisplay? {
     let range = NSRange(line.startIndex..<line.endIndex, in: line)
     guard
+      let displayLine,
       let match = displayLine.firstMatch(in: line, range: range),
       match.numberOfRanges == 4,
       let indexRange = Range(match.range(at: 1), in: line),

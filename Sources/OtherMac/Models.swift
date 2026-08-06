@@ -88,7 +88,7 @@ struct AppSettings: Codable, Equatable, Sendable {
   var displayConfigs: [String: DisplayConfiguration]
 
   init(
-    version: Int = 2,
+    version: Int = 3,
     showMenuBarIcon: Bool = true,
     launchAtLogin: Bool = false,
     completedOnboarding: Bool = false,

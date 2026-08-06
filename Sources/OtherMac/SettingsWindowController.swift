@@ -26,8 +26,9 @@ final class SettingsWindowController: NSWindowController {
   }
 
   func present() {
+    NSApplication.shared.activate(ignoringOtherApps: true)
     showWindow(nil)
     window?.center()
-    NSApplication.shared.activate(ignoringOtherApps: true)
+    window?.makeKeyAndOrderFront(nil)
   }
 }

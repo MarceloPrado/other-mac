@@ -285,7 +285,7 @@ struct OnboardingView: View {
         .frame(maxWidth: 420)
       }
 
-      KeyboardShortcuts.Recorder(
+      ShortcutRecorder(
         "Swap to the other Mac",
         name: .swapToOtherMac,
         onChange: { shortcut in

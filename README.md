@@ -83,6 +83,15 @@ sh scripts/package-dmg.sh
 open dist/Other-Mac.dmg
 ```
 
+Verify the packaged resources, signatures, clean-install lifecycle, and v0.1.0
+preference upgrade with:
+
+```sh
+sh scripts/verify-app.sh "dist/Other Mac.app"
+sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" clean
+sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" legacy
+```
+
 ## Publishing a release
 
 The `Release` GitHub Action handles the public build without Apple credentials

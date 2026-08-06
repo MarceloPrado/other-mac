@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "simulated DDC detection failure" >&2
+exit 42

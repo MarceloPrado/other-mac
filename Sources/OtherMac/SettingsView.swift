@@ -45,7 +45,7 @@ struct SettingsView: View {
 
   private var shortcutSection: some View {
     Section("Keyboard") {
-      KeyboardShortcuts.Recorder(
+      ShortcutRecorder(
         "Swap to the other Mac",
         name: .swapToOtherMac
       )

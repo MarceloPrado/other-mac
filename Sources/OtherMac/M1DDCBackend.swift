@@ -48,7 +48,9 @@ actor M1DDCBackend: DisplayBackend {
     }
 
     var candidates: [URL] = []
-    if let packageResource = Bundle.module.url(forResource: "m1ddc", withExtension: nil) {
+    if Bundle.main.bundleURL.pathExtension != "app",
+      let packageResource = Bundle.module.url(forResource: "m1ddc", withExtension: nil)
+    {
       candidates.append(packageResource)
     }
     candidates.append(contentsOf: [
