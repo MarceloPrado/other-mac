@@ -15,10 +15,18 @@ There is no account, analytics, or background service.
 
 1. Download `Other-Mac.dmg` from the latest GitHub release.
 2. Open it and drag **Other Mac** to Applications.
-3. Open Other Mac, choose the monitor input used by your second computer, and
-   record a shortcut.
+3. Try to open Other Mac once. macOS will block it because the app is not
+   notarized.
+4. Open **System Settings → Privacy & Security**, scroll to Security, and click
+   **Open Anyway**.
+5. Open Other Mac again, choose the monitor input used by your second computer,
+   and record a shortcut.
 
-The release is signed with a Developer ID certificate and notarized by Apple.
+Other Mac uses a free ad hoc signature. This verifies the app bundle is
+internally consistent, but it does not identify me to Gatekeeper. The one-time
+Open Anyway step is required because I do not pay for an Apple Developer
+Program membership. Apple explains the process in
+[Open apps safely on your Mac](https://support.apple.com/en-gb/102445).
 
 ## Requirements
 
@@ -67,46 +75,19 @@ open "dist/Other Mac.app"
 This creates an ad hoc signed local build. To create a DMG:
 
 ```sh
+brew install create-dmg
 sh scripts/package-dmg.sh
 open dist/Other-Mac.dmg
 ```
 
 ## Publishing a release
 
-The `Release` GitHub Action handles the public build. Run it from the Actions
-tab with a version such as `0.1.0`, or push a tag such as `v0.1.0`.
+The `Release` GitHub Action handles the public build without Apple credentials
+or paid services. Run it from the Actions tab with a version such as `0.1.0`,
+or push a tag such as `v0.1.0`.
 
-Before the first release, add these repository secrets:
-
-| Secret | Value |
-| --- | --- |
-| `BUILD_CERTIFICATE_BASE64` | Base64-encoded Developer ID Application `.p12` |
-| `P12_PASSWORD` | Password used when exporting the `.p12` |
-| `APPLE_ID` | Apple Developer account email |
-| `APPLE_TEAM_ID` | Apple Developer Team ID |
-| `APPLE_APP_PASSWORD` | App-specific password for notarization |
-
-The workflow runs the tests, imports the certificate into a temporary
-keychain, signs the app with the hardened runtime and a secure timestamp,
-creates `Other-Mac.dmg`, submits it to Apple for notarization, staples the
-ticket, and uploads the DMG to GitHub Releases.
-
-For local notarization, install the Developer ID certificate in Keychain and
-run:
-
-```sh
-CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-  APP_VERSION=0.1.0 \
-  sh scripts/package-dmg.sh
-
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="TEAMID" \
-APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-  sh scripts/notarize.sh dist/Other-Mac.dmg
-```
-
-You can also store notarization credentials in Keychain and pass their profile
-name as `NOTARY_KEYCHAIN_PROFILE`.
+The workflow runs the tests, builds an ad hoc signed app, creates the custom
+drag-to-Applications DMG, and uploads `Other-Mac.dmg` to GitHub Releases.
 
 ## Project structure
 
