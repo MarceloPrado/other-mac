@@ -1,59 +1,49 @@
 # Other Mac
 
-Other Mac is a tiny native macOS menu-bar app that moves an external display
-from this Mac to the other one. Use one warm, obvious **Swap** button or record
-a global keyboard shortcut and never leave the keyboard.
+<img src="Brand/other-mac-logo.png" alt="Other Mac icon" width="128">
 
-The app is intentionally native:
+I use two Macs with one monitor. Other Mac lets me switch the monitor input
+with a keyboard shortcut, so I do not have to reach for the buttons underneath
+it.
 
-- AppKit owns the status item, popover, activation, and recovery behavior.
-- SwiftUI renders the playful popover and compact settings window.
-- `KeyboardShortcuts` records a global hotkey without an Accessibility prompt.
-- The proven `m1ddc` command used by the original Electron prototype remains
-  the DDC backend.
+[Download the latest DMG](https://github.com/MarceloPrado/other-mac/releases/latest/download/Other-Mac.dmg)
+
+Other Mac is free, open source, and built as a small native macOS menu bar app.
+There is no account, analytics, or background service.
+
+## Install
+
+1. Download `Other-Mac.dmg` from the latest GitHub release.
+2. Open it and drag **Other Mac** to Applications.
+3. Open Other Mac, choose the monitor input used by your second computer, and
+   record a shortcut.
+
+The release is signed with a Developer ID certificate and notarized by Apple.
 
 ## Requirements
 
-- Apple Silicon Mac
-- macOS 13 or later
-- A DDC/CI-capable external display
-- DDC/CI enabled in the monitor's settings
+- An Apple silicon Mac running macOS 13 or newer
+- An external display with DDC/CI enabled
+- A second computer connected to another input on that display
 
-`m1ddc` does not support Intel Macs. The app currently targets direct,
-notarized distribution rather than the Mac App Store.
+`m1ddc`, the display-control tool bundled with Other Mac, does not support Intel
+Macs.
 
-## Build and run
+## What it does
 
-```sh
-swift test
-sh scripts/build-app.sh
-open "dist/Other Mac.app"
-```
+Other Mac asks `m1ddc` for the connected displays, remembers the selected
+display by UUID, and sends the DDC/CI command for the input you chose. The
+monitor does the actual switching.
 
-Or use mise:
-
-```sh
-mise try
-```
-
-The build script creates an ad-hoc signed app at `dist/Other Mac.app`.
-
-## How display detection works
-
-The backend intentionally preserves the contract that was tested on a Dell
-U3223QE:
+The display detection follows the format tested with a Dell U3223QE:
 
 1. Run `m1ddc display list`.
-2. Parse lines in the format `[index] display name (UUID)`.
-3. Store configuration against the stable UUID.
-4. Resolve the display's current index on every refresh.
+2. Parse lines in the form `[index] display name (UUID)`.
+3. Save the selected monitor by UUID.
+4. Find its current index each time the display list changes.
 5. Switch with `m1ddc display <index> set input <value>`.
 
-On first native launch, settings are imported from the Electron application
-support directory. If no all-display shortcut exists, a shortcut attached to
-the single enabled display becomes the new global Swap shortcut.
-
-Known standard input values:
+Common input values:
 
 | Input | Value |
 | --- | ---: |
@@ -63,20 +53,73 @@ Known standard input values:
 | HDMI 2 | 18 |
 | USB-C | 27 |
 
-The packaged app uses its bundled `m1ddc` binary. Development builds also fall
-back to `/opt/homebrew/bin/m1ddc` and `/usr/local/bin/m1ddc`.
+If your monitor has a USB/KVM hub, configure it to follow the active input so
+your keyboard and mouse switch with the picture.
 
-## Moving the keyboard and mouse
+## Build from source
 
-Other Mac changes the monitor input. For peripherals to follow automatically,
-configure the monitor's USB/KVM to follow its active input, or use a keyboard
-and mouse connected to both Macs.
+```sh
+swift test
+sh scripts/build-app.sh
+open "dist/Other Mac.app"
+```
 
-## Brand assets
+This creates an ad hoc signed local build. To create a DMG:
 
-- `Brand/other-mac-logo.png` — generated master app icon artwork
-- `Brand/other-mac-menubar.svg` — deterministic monochrome menu-bar companion
-- `Sources/OtherMac/Resources/AppIcon.icns` — packaged macOS icon
+```sh
+sh scripts/package-dmg.sh
+open dist/Other-Mac.dmg
+```
 
-The bundled `m1ddc` binary is distributed under the MIT license included in the
-app resources.
+## Publishing a release
+
+The `Release` GitHub Action handles the public build. Run it from the Actions
+tab with a version such as `0.1.0`, or push a tag such as `v0.1.0`.
+
+Before the first release, add these repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `BUILD_CERTIFICATE_BASE64` | Base64-encoded Developer ID Application `.p12` |
+| `P12_PASSWORD` | Password used when exporting the `.p12` |
+| `APPLE_ID` | Apple Developer account email |
+| `APPLE_TEAM_ID` | Apple Developer Team ID |
+| `APPLE_APP_PASSWORD` | App-specific password for notarization |
+
+The workflow runs the tests, imports the certificate into a temporary
+keychain, signs the app with the hardened runtime and a secure timestamp,
+creates `Other-Mac.dmg`, submits it to Apple for notarization, staples the
+ticket, and uploads the DMG to GitHub Releases.
+
+For local notarization, install the Developer ID certificate in Keychain and
+run:
+
+```sh
+CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+  APP_VERSION=0.1.0 \
+  sh scripts/package-dmg.sh
+
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="TEAMID" \
+APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+  sh scripts/notarize.sh dist/Other-Mac.dmg
+```
+
+You can also store notarization credentials in Keychain and pass their profile
+name as `NOTARY_KEYCHAIN_PROFILE`.
+
+## Project structure
+
+- AppKit owns the menu bar item, popover, and app activation.
+- SwiftUI renders the popover and settings window.
+- `KeyboardShortcuts` records the global shortcut.
+- The bundled `m1ddc` executable handles DDC/CI.
+
+The app imports settings from the old Electron version on first launch, so an
+existing display and shortcut configuration carries over.
+
+## License
+
+Other Mac is available under the [MIT License](LICENSE). The bundled `m1ddc`
+binary has its own MIT license in
+`Sources/OtherMac/Resources/m1ddc-LICENSE.txt`.
