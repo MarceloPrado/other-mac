@@ -6,13 +6,17 @@ APP_VERSION=${APP_VERSION:-0.1.0}
 BUILD_NUMBER=${BUILD_NUMBER:-1}
 CODE_SIGN_IDENTITY=${CODE_SIGN_IDENTITY:--}
 DMG_PATH="$ROOT_DIR/dist/Other-Mac.dmg"
-STAGING_DIR=$(mktemp -d "${TMPDIR:-/tmp}/other-mac-dmg.XXXXXX")
+TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/other-mac-dmg.XXXXXX")
+STAGING_DIR="$TEMP_DIR/staging"
+BACKGROUND_TIFF="$TEMP_DIR/dmg-background.tiff"
 CREATE_DMG_BIN=${CREATE_DMG_BIN:-}
 
 cleanup() {
-  rm -r "$STAGING_DIR"
+  rm -r "$TEMP_DIR"
 }
 trap cleanup EXIT HUP INT TERM
+
+mkdir "$STAGING_DIR"
 
 if [ -z "$CREATE_DMG_BIN" ]; then
   CREATE_DMG_BIN=$(command -v create-dmg || true)
@@ -30,6 +34,11 @@ CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
 
 ditto "$ROOT_DIR/dist/Other Mac.app" "$STAGING_DIR/Other Mac.app"
 
+tiffutil -cathidpicheck \
+  "$ROOT_DIR/Resources/dmg-background.png" \
+  "$ROOT_DIR/Resources/dmg-background@2x.png" \
+  -out "$BACKGROUND_TIFF"
+
 if [ -f "$DMG_PATH" ]; then
   rm "$DMG_PATH"
 fi
@@ -37,7 +46,7 @@ fi
 "$CREATE_DMG_BIN" \
   --volname "Other Mac" \
   --volicon "$ROOT_DIR/Sources/OtherMac/Resources/AppIcon.icns" \
-  --background "$ROOT_DIR/Resources/dmg-background.png" \
+  --background "$BACKGROUND_TIFF" \
   --window-pos 200 120 \
   --window-size 660 420 \
   --text-size 13 \
