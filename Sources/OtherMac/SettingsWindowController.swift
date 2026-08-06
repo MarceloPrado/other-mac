@@ -3,8 +3,11 @@ import SwiftUI
 
 @MainActor
 final class SettingsWindowController: NSWindowController {
-  init(model: AppModel) {
-    let content = SettingsView(model: model)
+  init(model: AppModel, openOnboarding: @escaping () -> Void) {
+    let content = SettingsView(
+      model: model,
+      openOnboarding: openOnboarding
+    )
     let hostingController = NSHostingController(rootView: content)
     let window = NSWindow(contentViewController: hostingController)
 

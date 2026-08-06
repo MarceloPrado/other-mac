@@ -30,6 +30,27 @@ struct AppModelTests {
 
     try FileManager.default.removeItem(at: root)
   }
+
+  @Test
+  func onboardingCompletionPersistsOnlyWhenFinished() async throws {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let store = SettingsStore(applicationSupportURL: root)
+    let model = AppModel(backend: RecordingDisplayBackend(), store: store)
+
+    await model.refreshDisplays()
+    model.setTargetInput(MonitorInput.usbC.rawValue, uuid: RecordingDisplayBackend.uuid)
+
+    #expect(!model.settings.completedOnboarding)
+    #expect(!store.load().completedOnboarding)
+
+    model.completeOnboarding()
+
+    #expect(model.settings.completedOnboarding)
+    #expect(store.load().completedOnboarding)
+
+    try FileManager.default.removeItem(at: root)
+  }
 }
 
 private actor RecordingDisplayBackend: DisplayBackend {

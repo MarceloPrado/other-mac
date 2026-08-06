@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @ObservedObject var model: AppModel
+  let openOnboarding: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -78,6 +79,13 @@ struct SettingsView: View {
           }
         )
       )
+
+      Button("Run Setup Again…") {
+        openOnboarding()
+      }
+      Text("Review the monitor, input, and shortcut for this Mac.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
   }
 

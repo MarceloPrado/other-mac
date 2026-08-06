@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PopoverView: View {
   @ObservedObject var model: AppModel
+  let openOnboarding: () -> Void
   let openSettings: () -> Void
   let hideMenuBarIcon: () -> Void
 
@@ -107,7 +108,10 @@ struct PopoverView: View {
   }
 
   private var footer: some View {
-    HStack(spacing: 15) {
+    HStack(spacing: 12) {
+      Button("Setup…", systemImage: "sparkles") {
+        openOnboarding()
+      }
       Button("Settings…", systemImage: "gearshape") {
         openSettings()
       }

@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusBarController = statusBar
 
     if model.settings.showMenuBarIcon {
-      statusBar.show(openPopover: !model.settings.completedOnboarding)
+      statusBar.show()
     }
 
     LegacyShortcutMigrator.migrateIfNeeded()
@@ -24,6 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     model.start()
+
+    if !model.settings.completedOnboarding {
+      DispatchQueue.main.async {
+        statusBar.showOnboarding()
+      }
+    }
   }
 
   func applicationShouldHandleReopen(

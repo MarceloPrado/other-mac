@@ -21,6 +21,8 @@ enum OtherMacStyle {
     green: 0.278,
     blue: 0.204
   )
+  static let paper = Color.white.opacity(0.62)
+  static let secondaryInk = ink.opacity(0.62)
 }
 
 struct EditorialTitle: ViewModifier {

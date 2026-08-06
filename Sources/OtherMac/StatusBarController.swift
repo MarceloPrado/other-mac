@@ -6,6 +6,7 @@ import SwiftUI
 final class StatusBarController: NSObject {
   private let model: AppModel
   private var settingsWindow: SettingsWindowController?
+  private var onboardingWindow: OnboardingWindowController?
   private let popover = NSPopover()
   private var statusItem: NSStatusItem?
   private var cancellables: Set<AnyCancellable> = []
@@ -20,6 +21,10 @@ final class StatusBarController: NSObject {
     popover.contentViewController = NSHostingController(
       rootView: PopoverView(
         model: model,
+        openOnboarding: { [weak self] in
+          self?.popover.close()
+          self?.showOnboarding()
+        },
         openSettings: { [weak self] in
           self?.popover.close()
           self?.openSettings()
@@ -43,7 +48,7 @@ final class StatusBarController: NSObject {
       .store(in: &cancellables)
   }
 
-  func show(openPopover: Bool = false) {
+  func show() {
     if statusItem == nil {
       let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
       item.autosaveName = "OtherMacStatusItem"
@@ -60,12 +65,6 @@ final class StatusBarController: NSObject {
     }
 
     statusItem?.isVisible = true
-
-    if openPopover {
-      DispatchQueue.main.async { [weak self] in
-        self?.openPopover()
-      }
-    }
   }
 
   func hide() {
@@ -78,7 +77,21 @@ final class StatusBarController: NSObject {
 
   func restoreAndOpen() {
     model.setShowMenuBarIcon(true)
-    show(openPopover: true)
+    show()
+    if model.settings.completedOnboarding {
+      openPopover()
+    } else {
+      showOnboarding()
+    }
+  }
+
+  func showOnboarding() {
+    if onboardingWindow == nil {
+      onboardingWindow = OnboardingWindowController(model: model) { [weak self] in
+        self?.openPopover()
+      }
+    }
+    onboardingWindow?.present()
   }
 
   @objc private func togglePopover() {
@@ -97,7 +110,12 @@ final class StatusBarController: NSObject {
 
   private func openSettings() {
     if settingsWindow == nil {
-      settingsWindow = SettingsWindowController(model: model)
+      settingsWindow = SettingsWindowController(
+        model: model,
+        openOnboarding: { [weak self] in
+          self?.showOnboarding()
+        }
+      )
     }
     settingsWindow?.present()
   }

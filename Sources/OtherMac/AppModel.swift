@@ -131,6 +131,10 @@ final class AppModel: ObservableObject {
     guard var config = settings.displayConfigs[uuid] else { return }
     config.targetInput = input
     settings.displayConfigs[uuid] = config
+    persist()
+  }
+
+  func completeOnboarding() {
     settings.completedOnboarding = true
     persist()
   }
