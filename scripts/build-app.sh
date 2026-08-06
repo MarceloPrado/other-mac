@@ -27,12 +27,6 @@ chmod 755 "$MACOS_DIR/OtherMac" "$RESOURCES_DIR/m1ddc"
 /usr/bin/plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$CONTENTS_DIR/Info.plist"
 /usr/bin/plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$CONTENTS_DIR/Info.plist"
 
-for resource_bundle in "$ROOT_DIR"/.build/release/*.bundle; do
-  if [ -d "$resource_bundle" ]; then
-    cp -R "$resource_bundle" "$APP_DIR/"
-  fi
-done
-
 sign_item() {
   item=$1
 

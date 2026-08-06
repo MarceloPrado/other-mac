@@ -32,13 +32,22 @@ actor M1DDCBackend: DisplayBackend {
       return resolvedExecutable
     }
 
-    var candidates: [URL] = []
     if let override = environment["OTHER_MAC_M1DDC_PATH"], !override.isEmpty {
-      candidates.append(URL(fileURLWithPath: override))
+      let overrideURL = URL(fileURLWithPath: override)
+      if FileManager.default.isExecutableFile(atPath: overrideURL.path) {
+        resolvedExecutable = overrideURL
+        return overrideURL
+      }
     }
+
     if let bundled = Bundle.main.resourceURL?.appendingPathComponent("m1ddc") {
-      candidates.append(bundled)
+      if FileManager.default.isExecutableFile(atPath: bundled.path) {
+        resolvedExecutable = bundled
+        return bundled
+      }
     }
+
+    var candidates: [URL] = []
     if let packageResource = Bundle.module.url(forResource: "m1ddc", withExtension: nil) {
       candidates.append(packageResource)
     }
