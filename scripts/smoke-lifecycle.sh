@@ -88,7 +88,7 @@ fi
 if [ "$PREFERENCES" = "legacy" ]; then
   MIGRATED_PATH="$SUPPORT_DIR/Other Mac/settings.json"
   test -f "$MIGRATED_PATH"
-  test "$(plutil -extract version raw "$MIGRATED_PATH")" = "3"
+  test "$(plutil -extract version raw "$MIGRATED_PATH")" = "4"
   test "$(plutil -extract completedOnboarding raw "$MIGRATED_PATH")" = "true"
 fi
 
