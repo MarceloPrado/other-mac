@@ -92,20 +92,34 @@ do
   sleep 5
 done
 
-APPCAST_PATH="$TEMP_DIR/appcast.xml" RELEASE_VERSION="$VERSION" ruby <<'RUBY'
+unzip -t "$TEMP_DIR/$ARCHIVE_NAME" >/dev/null
+mkdir "$TEMP_DIR/unpacked"
+ditto -x -k "$TEMP_DIR/$ARCHIVE_NAME" "$TEMP_DIR/unpacked"
+APP_BUILD=$(plutil -extract CFBundleVersion raw \
+  "$TEMP_DIR/unpacked/Other Mac.app/Contents/Info.plist")
+
+APPCAST_PATH="$TEMP_DIR/appcast.xml" \
+RELEASE_VERSION="$VERSION" \
+APP_BUILD="$APP_BUILD" \
+ruby <<'RUBY'
 require "rexml/document"
 
 path = ENV.fetch("APPCAST_PATH")
 version = ENV.fetch("RELEASE_VERSION")
+app_build = ENV.fetch("APP_BUILD")
 document = REXML::Document.new(File.read(path))
 item = document.elements["rss/channel/item"] or raise "appcast item is missing"
 enclosure = item.elements["enclosure"] or raise "appcast enclosure is missing"
+short_version =
+  item.elements["sparkle:shortVersionString"] or raise "short version is missing"
+build_version =
+  item.elements["sparkle:version"] or raise "build version is missing"
 
 expected_url =
   "https://github.com/MarceloPrado/other-mac/releases/download/v#{version}/Other-Mac-#{version}.zip"
 
-raise "short version mismatch" unless enclosure.attributes["sparkle:shortVersionString"] == version
-raise "build version mismatch" unless enclosure.attributes["sparkle:version"] == version
+raise "short version mismatch" unless short_version.text.to_s.strip == version
+raise "build version mismatch" unless build_version.text.to_s.strip == app_build
 raise "updater archive URL mismatch" unless enclosure.attributes["url"] == expected_url
 raise "EdDSA signature is missing" if enclosure.attributes["sparkle:edSignature"].to_s.empty?
 raise "archive length is missing" if enclosure.attributes["length"].to_s.empty?
@@ -115,9 +129,6 @@ raise "release notes are not Markdown" unless description.attributes["sparkle:fo
 raise "release notes are empty" if description.text.to_s.strip.empty?
 RUBY
 
-unzip -t "$TEMP_DIR/$ARCHIVE_NAME" >/dev/null
-mkdir "$TEMP_DIR/unpacked"
-ditto -x -k "$TEMP_DIR/$ARCHIVE_NAME" "$TEMP_DIR/unpacked"
 sh scripts/verify-app.sh "$TEMP_DIR/unpacked/Other Mac.app" "$VERSION"
 hdiutil verify "$TEMP_DIR/Other-Mac.dmg" >/dev/null
 
