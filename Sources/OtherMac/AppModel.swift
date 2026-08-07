@@ -18,6 +18,7 @@ final class AppModel: ObservableObject {
   private let isPackagedApp: Bool
   private var resetTask: Task<Void, Never>?
   private var isOnboardingPresented = false
+  private var shouldConsumeNextShortcutKeyUp = false
 
   init(
     backend: any DisplayBackend = M1DDCBackend(),
@@ -130,10 +131,15 @@ final class AppModel: ObservableObject {
 
   func handleShortcutKeyDown() {
     guard isOnboardingPresented else { return }
+    shouldConsumeNextShortcutKeyUp = true
     shortcutTestPulse += 1
   }
 
   func handleShortcutKeyUp() async {
+    if shouldConsumeNextShortcutKeyUp {
+      shouldConsumeNextShortcutKeyUp = false
+      return
+    }
     guard !isOnboardingPresented else { return }
     await swap()
   }

@@ -83,6 +83,31 @@ struct AppModelTests {
   }
 
   @Test
+  func shortcutStartedDuringOnboardingStaysSuppressedAfterWindowCloses() async throws {
+    let backend = RecordingDisplayBackend()
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let model = AppModel(
+      backend: backend,
+      store: SettingsStore(applicationSupportURL: root)
+    )
+    await model.refreshDisplays()
+
+    model.beginOnboarding()
+    model.handleShortcutKeyDown()
+    model.endOnboarding()
+    await model.handleShortcutKeyUp()
+
+    #expect(model.shortcutTestPulse == 1)
+    #expect(await backend.commands.isEmpty)
+
+    await model.handleShortcutKeyUp()
+    #expect(await backend.commands.count == 1)
+
+    try? FileManager.default.removeItem(at: root)
+  }
+
+  @Test
   func upgradedSettingsShowTheCurrentOnboardingOnce() throws {
     let root = FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString, isDirectory: true)

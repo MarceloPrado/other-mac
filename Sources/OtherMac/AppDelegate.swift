@@ -9,6 +9,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var updaterController: SPUStandardUpdaterController?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    let environment = ProcessInfo.processInfo.environment
+    let isLifecycleSmoke =
+      environment["OTHER_MAC_LIFECYCLE_SMOKE_RESULT"]?.isEmpty == false
+
+    if SingleInstanceController.activateExistingInstance(
+      isLifecycleSmoke: isLifecycleSmoke
+    ) {
+      NSApplication.shared.terminate(nil)
+      return
+    }
+
     NSApplication.shared.setActivationPolicy(.accessory)
 
     let updater = SPUStandardUpdaterController(
@@ -33,14 +44,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     LegacyShortcutMigrator.migrateIfNeeded(
       applicationSupportURL: model.applicationSupportURL
     )
-    KeyboardShortcuts.onKeyDown(for: .swapToOtherMac) { [weak model] in
-      Task { @MainActor in
-        model?.handleShortcutKeyDown()
+    if !isLifecycleSmoke {
+      KeyboardShortcuts.onKeyDown(for: .swapToOtherMac) { [weak model] in
+        Task { @MainActor in
+          model?.handleShortcutKeyDown()
+        }
       }
-    }
-    KeyboardShortcuts.onKeyUp(for: .swapToOtherMac) { [weak model] in
-      Task { @MainActor in
-        await model?.handleShortcutKeyUp()
+      KeyboardShortcuts.onKeyUp(for: .swapToOtherMac) { [weak model] in
+        Task { @MainActor in
+          await model?.handleShortcutKeyUp()
+        }
       }
     }
 
@@ -53,11 +66,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
     }
 
-    if let resultPath = ProcessInfo.processInfo.environment[
-      "OTHER_MAC_LIFECYCLE_SMOKE_RESULT"
-    ], !resultPath.isEmpty {
+    if let resultPath = environment["OTHER_MAC_LIFECYCLE_SMOKE_RESULT"],
+      !resultPath.isEmpty
+    {
       let iterations =
-        ProcessInfo.processInfo.environment["OTHER_MAC_LIFECYCLE_SMOKE_ITERATIONS"]
+        environment["OTHER_MAC_LIFECYCLE_SMOKE_ITERATIONS"]
         .flatMap(Int.init) ?? 20
       Task {
         let result = await statusBar.runLifecycleSmoke(iterations: iterations)
@@ -66,6 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
           atomically: true,
           encoding: .utf8
         )
+        try? await Task.sleep(for: .seconds(3))
+        NSApplication.shared.terminate(nil)
       }
     }
   }

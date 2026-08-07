@@ -22,7 +22,6 @@ struct OnboardingView: View {
       ZStack {
         currentStep
           .id(flow.step)
-          .transition(stepTransition)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .clipped()
@@ -351,16 +350,6 @@ struct OnboardingView: View {
     .padding(.bottom, 24)
   }
 
-  private var stepTransition: AnyTransition {
-    guard !reduceMotion else {
-      return .opacity
-    }
-    return .asymmetric(
-      insertion: .move(edge: .trailing).combined(with: .opacity),
-      removal: .move(edge: .leading).combined(with: .opacity)
-    )
-  }
-
   private var continueAccessibilityHint: String {
     if flow.step == .display && !model.isConfigured {
       return "Choose at least one display first."
@@ -432,15 +421,11 @@ struct OnboardingView: View {
   }
 
   private func advance() {
-    withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88)) {
-      flow.advance()
-    }
+    flow.advance()
   }
 
   private func goBack() {
-    withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88)) {
-      flow.goBack()
-    }
+    flow.goBack()
   }
 }
 
