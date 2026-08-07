@@ -85,19 +85,22 @@ struct AppSettings: Codable, Equatable, Sendable {
   var showMenuBarIcon: Bool
   var launchAtLogin: Bool
   var completedOnboarding: Bool
+  var completedOnboardingVersion: Int
   var displayConfigs: [String: DisplayConfiguration]
 
   init(
-    version: Int = 3,
+    version: Int = 4,
     showMenuBarIcon: Bool = true,
     launchAtLogin: Bool = false,
     completedOnboarding: Bool = false,
+    completedOnboardingVersion: Int = 0,
     displayConfigs: [String: DisplayConfiguration] = [:]
   ) {
     self.version = version
     self.showMenuBarIcon = showMenuBarIcon
     self.launchAtLogin = launchAtLogin
     self.completedOnboarding = completedOnboarding
+    self.completedOnboardingVersion = completedOnboardingVersion
     self.displayConfigs = displayConfigs
   }
 
@@ -107,6 +110,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     case showTrayIcon
     case launchAtLogin
     case completedOnboarding
+    case completedOnboardingVersion
     case displayConfigs
   }
 
@@ -120,6 +124,8 @@ struct AppSettings: Codable, Equatable, Sendable {
     launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
     completedOnboarding =
       try container.decodeIfPresent(Bool.self, forKey: .completedOnboarding) ?? false
+    completedOnboardingVersion =
+      try container.decodeIfPresent(Int.self, forKey: .completedOnboardingVersion) ?? 0
     displayConfigs =
       try container.decodeIfPresent(
         [String: DisplayConfiguration].self,
@@ -133,6 +139,7 @@ struct AppSettings: Codable, Equatable, Sendable {
     try container.encode(showMenuBarIcon, forKey: .showMenuBarIcon)
     try container.encode(launchAtLogin, forKey: .launchAtLogin)
     try container.encode(completedOnboarding, forKey: .completedOnboarding)
+    try container.encode(completedOnboardingVersion, forKey: .completedOnboardingVersion)
     try container.encode(displayConfigs, forKey: .displayConfigs)
   }
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Other Mac"
+  short_description: "Ship and verify an Other Mac production release"
+  default_prompt: "Use $release-other-mac to launch a new production version of Other Mac and verify the update feed."

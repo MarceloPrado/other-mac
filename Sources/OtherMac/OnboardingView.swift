@@ -10,6 +10,10 @@ struct OnboardingView: View {
   @State private var isHopping = false
   @State private var hasShortcut =
     KeyboardShortcuts.getShortcut(for: .swapToOtherMac) != nil
+  @State private var hasTestedShortcut = false
+  @State private var shortcutIsPressed = false
+  @State private var shortcutJiggle = 0.0
+  @State private var shortcutFeedbackTask: Task<Void, Never>?
 
   var body: some View {
     VStack(spacing: 0) {
@@ -33,6 +37,12 @@ struct OnboardingView: View {
       withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
         isHopping = true
       }
+    }
+    .onChange(of: model.shortcutTestPulse) { _ in
+      handleShortcutTest()
+    }
+    .onDisappear {
+      shortcutFeedbackTask?.cancel()
     }
   }
 
@@ -290,15 +300,17 @@ struct OnboardingView: View {
         name: .swapToOtherMac,
         onChange: { shortcut in
           hasShortcut = shortcut != nil
+          hasTestedShortcut = false
         }
       )
       .padding(16)
       .background(OtherMacStyle.paper)
       .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+      .scaleEffect(shortcutIsPressed ? 0.95 : 1)
+      .rotationEffect(.degrees(shortcutJiggle))
+      .offset(x: shortcutJiggle * 1.4)
 
-      Text("Remember to finish setup on your other Mac, too.")
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(OtherMacStyle.secondaryInk)
+      shortcutTestPrompt
 
       Spacer()
     }
@@ -329,7 +341,7 @@ struct OnboardingView: View {
       .buttonStyle(PrimaryOnboardingButtonStyle())
       .disabled(
         (flow.step == .display && !model.isConfigured)
-          || (flow.step == .shortcut && !hasShortcut)
+          || (flow.step == .shortcut && (!hasShortcut || !hasTestedShortcut))
       )
       .accessibilityHint(
         continueAccessibilityHint
@@ -356,7 +368,67 @@ struct OnboardingView: View {
     if flow.step == .shortcut && !hasShortcut {
       return "Record a global shortcut first."
     }
+    if flow.step == .shortcut && !hasTestedShortcut {
+      return "Press your new shortcut once to test it."
+    }
     return ""
+  }
+
+  @ViewBuilder
+  private var shortcutTestPrompt: some View {
+    if !hasShortcut {
+      Text("Record a shortcut, then press it once to test.")
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(OtherMacStyle.secondaryInk)
+    } else if hasTestedShortcut {
+      Label("Nice — you’re ready to hop between Macs.", systemImage: "checkmark.circle.fill")
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(OtherMacStyle.coral)
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+    } else {
+      Text("Now press \(shortcutDescription) to try it. Your monitor won’t switch.")
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(OtherMacStyle.secondaryInk)
+    }
+  }
+
+  private var shortcutDescription: String {
+    KeyboardShortcuts.getShortcut(for: .swapToOtherMac)?.description
+      ?? "your shortcut"
+  }
+
+  private func handleShortcutTest() {
+    guard flow.step == .shortcut, hasShortcut else { return }
+
+    hasTestedShortcut = true
+    shortcutFeedbackTask?.cancel()
+
+    guard !reduceMotion else { return }
+    shortcutFeedbackTask = Task { @MainActor in
+      withAnimation(.easeOut(duration: 0.07)) {
+        shortcutIsPressed = true
+        shortcutJiggle = -2.2
+      }
+      try? await Task.sleep(for: .milliseconds(75))
+      guard !Task.isCancelled else { return }
+
+      withAnimation(.easeInOut(duration: 0.07)) {
+        shortcutJiggle = 2.0
+      }
+      try? await Task.sleep(for: .milliseconds(75))
+      guard !Task.isCancelled else { return }
+
+      withAnimation(.easeInOut(duration: 0.06)) {
+        shortcutJiggle = -1.1
+      }
+      try? await Task.sleep(for: .milliseconds(65))
+      guard !Task.isCancelled else { return }
+
+      withAnimation(.spring(response: 0.24, dampingFraction: 0.62)) {
+        shortcutIsPressed = false
+        shortcutJiggle = 0
+      }
+    }
   }
 
   private func advance() {

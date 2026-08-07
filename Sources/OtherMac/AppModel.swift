@@ -4,16 +4,20 @@ import ServiceManagement
 
 @MainActor
 final class AppModel: ObservableObject {
+  static let currentOnboardingVersion = 1
+
   @Published private(set) var settings: AppSettings
   @Published private(set) var displays: [DetectedDisplay] = []
   @Published private(set) var swapState: SwapState = .idle
   @Published private(set) var statusMessage = "Looking for your display…"
+  @Published private(set) var shortcutTestPulse = 0
 
   private let backend: any DisplayBackend
   private let store: SettingsStore
   private let launchAtLoginService: any LaunchAtLoginService
   private let isPackagedApp: Bool
   private var resetTask: Task<Void, Never>?
+  private var isOnboardingPresented = false
 
   init(
     backend: any DisplayBackend = M1DDCBackend(),
@@ -30,7 +34,9 @@ final class AppModel: ObservableObject {
       loadedSettings.completedOnboarding =
         loadedSettings.completedOnboarding
         || !loadedSettings.displayConfigs.isEmpty
-      loadedSettings.version = 3
+    }
+    if loadedSettings.version < 4 {
+      loadedSettings.version = 4
       try? store.save(loadedSettings)
     }
     settings = loadedSettings
@@ -42,6 +48,10 @@ final class AppModel: ObservableObject {
 
   var isConfigured: Bool {
     !enabledDisplays.isEmpty
+  }
+
+  var needsOnboarding: Bool {
+    settings.completedOnboardingVersion < Self.currentOnboardingVersion
   }
 
   var applicationSupportURL: URL {
@@ -118,6 +128,24 @@ final class AppModel: ObservableObject {
     }
   }
 
+  func handleShortcutKeyDown() {
+    guard isOnboardingPresented else { return }
+    shortcutTestPulse += 1
+  }
+
+  func handleShortcutKeyUp() async {
+    guard !isOnboardingPresented else { return }
+    await swap()
+  }
+
+  func beginOnboarding() {
+    isOnboardingPresented = true
+  }
+
+  func endOnboarding() {
+    isOnboardingPresented = false
+  }
+
   func test(display: DetectedDisplay) async {
     guard let config = settings.displayConfigs[display.uuid] else { return }
 
@@ -149,6 +177,7 @@ final class AppModel: ObservableObject {
 
   func completeOnboarding() {
     settings.completedOnboarding = true
+    settings.completedOnboardingVersion = Self.currentOnboardingVersion
     persist()
   }
 

@@ -10,6 +10,10 @@ on:
         description: "Version to release, for example 0.1.0"
         required: true
         type: string
+      highlights:
+        description: "Optional user-facing Markdown shown before the generated change list"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -26,6 +30,8 @@ jobs:
     steps:
       - name: Check out the source
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Choose the version
         id: version
@@ -47,7 +53,7 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Run tests
-        run: swift test -j 1
+        run: swift test --disable-keychain -j 1
 
       - name: Install DMG tooling
         run: brew install create-dmg
@@ -58,11 +64,56 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: sh scripts/package-dmg.sh
 
+      - name: Build release notes
+        env:
+          RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            PREVIOUS_TAG_REF="$GITHUB_SHA^"
+          else
+            PREVIOUS_TAG_REF="$GITHUB_SHA"
+          fi
+
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "$PREVIOUS_TAG_REF" 2>/dev/null || true)
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            CHANGE_RANGE="$PREVIOUS_TAG..$GITHUB_SHA"
+          else
+            CHANGE_RANGE="$GITHUB_SHA"
+          fi
+
+          {
+            if [[ -n "$RELEASE_HIGHLIGHTS" ]]; then
+              printf '%s\n\n' "$RELEASE_HIGHLIGHTS"
+            fi
+
+            echo "## What's new"
+            git log --first-parent --format='- %s' "$CHANGE_RANGE"
+
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+              echo
+              echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$PREVIOUS_TAG...$RELEASE_TAG"
+            fi
+          } > dist/release-notes.md
+          test -s dist/release-notes.md
+
+      - name: Build the signed updater artifact
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_NOTES_PATH: dist/release-notes.md
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          test -n "$SPARKLE_PRIVATE_KEY"
+          sh scripts/package-update.sh
+
       - name: Verify the packaged app
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           sh scripts/verify-app.sh "dist/Other Mac.app" "$RELEASE_VERSION"
+          test -s "dist/Other-Mac-$RELEASE_VERSION.zip"
+          grep -q 'sparkle:edSignature=' dist/appcast.xml
+          grep -q 'sparkle:format="markdown"' dist/appcast.xml
           sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" clean
           sh scripts/smoke-lifecycle.sh "dist/Other Mac.app" legacy
           hdiutil verify dist/Other-Mac.dmg
@@ -74,11 +125,24 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" dist/Other-Mac.dmg --clobber
+            gh release upload "$RELEASE_TAG" \
+              dist/Other-Mac.dmg \
+              "dist/Other-Mac-$RELEASE_VERSION.zip" \
+              dist/appcast.xml \
+              --clobber
           else
             gh release create "$RELEASE_TAG" \
               dist/Other-Mac.dmg \
+              "dist/Other-Mac-$RELEASE_VERSION.zip" \
+              dist/appcast.xml \
               --target "$GITHUB_SHA" \
               --title "Other Mac $RELEASE_VERSION" \
-              --generate-notes
+              --draft \
+              --notes-file dist/release-notes.md
+          fi
+
+          gh release edit "$RELEASE_TAG" --notes-file dist/release-notes.md
+
+          if [[ "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" == "true" ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false --latest
           fi

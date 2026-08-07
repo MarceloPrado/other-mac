@@ -13,7 +13,6 @@ struct PopoverView: View {
       headline
       route
       swapButton
-      shortcut
       footer
     }
     .padding(20)
@@ -27,12 +26,20 @@ struct PopoverView: View {
       Text("Other Mac")
         .font(.system(size: 13, weight: .semibold, design: .rounded))
       Spacer()
-      Circle()
-        .fill(statusColor)
-        .frame(width: 8, height: 8)
-        .accessibilityLabel(statusLabel)
+      HStack(spacing: 5) {
+        Circle()
+          .fill(statusColor)
+          .frame(width: 7, height: 7)
+        Text(statusLabel)
+          .font(.system(size: 9, weight: .semibold, design: .rounded))
+      }
+      .padding(.horizontal, 8)
+      .padding(.vertical, 5)
+      .background(OtherMacStyle.ink.opacity(0.055))
+      .clipShape(Capsule())
+      .accessibilityElement(children: .combine)
     }
-    .padding(.bottom, 24)
+    .padding(.bottom, 20)
   }
 
   private var headline: some View {
@@ -44,21 +51,74 @@ struct PopoverView: View {
         .foregroundStyle(OtherMacStyle.ink.opacity(0.62))
         .lineLimit(2)
     }
-    .padding(.bottom, 22)
+    .padding(.bottom, 18)
   }
 
   private var route: some View {
-    HStack(spacing: 8) {
-      Text("This Mac")
-      Rectangle()
-        .frame(height: 1)
-        .foregroundStyle(OtherMacStyle.ink.opacity(0.25))
+    HStack(spacing: 9) {
+      deviceCard(
+        icon: "laptopcomputer",
+        title: "This Mac",
+        detail: "You’re here",
+        isDestination: false
+      )
+
       Image(systemName: "arrow.right")
-      Text("Other Mac")
+        .font(.system(size: 13, weight: .semibold))
+        .frame(width: 30, height: 30)
+        .foregroundStyle(OtherMacStyle.coral)
+        .background(OtherMacStyle.coral.opacity(0.11))
+        .clipShape(Circle())
+        .accessibilityHidden(true)
+
+      deviceCard(
+        icon: "desktopcomputer",
+        title: "Other Mac",
+        detail: "Ready",
+        isDestination: true
+      )
     }
-    .font(.system(size: 11, weight: .medium))
-    .padding(.bottom, 13)
+    .padding(.bottom, 14)
     .accessibilityElement(children: .combine)
+    .accessibilityLabel("Switch from This Mac to Other Mac")
+  }
+
+  private func deviceCard(
+    icon: String,
+    title: String,
+    detail: String,
+    isDestination: Bool
+  ) -> some View {
+    VStack(spacing: 5) {
+      Image(systemName: icon)
+        .font(.system(size: 20, weight: .medium))
+        .frame(height: 22)
+        .foregroundStyle(isDestination ? OtherMacStyle.coral : OtherMacStyle.ink)
+
+      Text(title)
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+
+      Text(detail)
+        .font(.system(size: 9, weight: .medium, design: .rounded))
+        .foregroundStyle(OtherMacStyle.ink.opacity(0.52))
+    }
+    .frame(maxWidth: .infinity)
+    .frame(height: 74)
+    .background(
+      isDestination
+        ? OtherMacStyle.coral.opacity(0.075)
+        : OtherMacStyle.paper
+    )
+    .overlay {
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(
+          isDestination
+            ? OtherMacStyle.coral.opacity(0.28)
+            : OtherMacStyle.ink.opacity(0.1),
+          lineWidth: 1
+        )
+    }
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 
   private var swapButton: some View {
@@ -67,18 +127,32 @@ struct PopoverView: View {
         await model.swap()
       }
     } label: {
-      HStack(spacing: 9) {
-        Image(systemName: buttonIcon)
-          .font(.system(size: 16, weight: .semibold))
+      ZStack {
         Text(buttonLabel)
-          .font(.system(size: 22, weight: .semibold, design: .serif))
+          .font(.system(size: 16, weight: .semibold, design: .serif))
+          .lineLimit(1)
+          .minimumScaleFactor(0.9)
+          .frame(maxWidth: .infinity)
+
+        HStack {
+          Spacer()
+          if let shortcutDisplayName {
+            Text(shortcutDisplayName)
+              .font(.system(size: 9, weight: .semibold, design: .rounded))
+              .padding(.horizontal, 7)
+              .padding(.vertical, 5)
+              .background(Color.white.opacity(0.17))
+              .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+          }
+        }
       }
+      .padding(.horizontal, 18)
       .frame(maxWidth: .infinity)
-      .frame(height: 68)
+      .frame(height: 58)
       .foregroundStyle(Color.white)
       .background(OtherMacStyle.coral)
       .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-      .shadow(color: OtherMacStyle.coralShadow, radius: 0, y: 5)
+      .shadow(color: OtherMacStyle.coralShadow.opacity(0.78), radius: 0, y: 4)
     }
     .buttonStyle(.plain)
     .disabled(!model.isConfigured || model.swapState == .working)
@@ -86,49 +160,50 @@ struct PopoverView: View {
     .accessibilityHint("Switches every enabled display to its configured input.")
   }
 
-  @ViewBuilder
-  private var shortcut: some View {
-    HStack {
-      Spacer()
-      if let shortcut = KeyboardShortcuts.getShortcut(for: .swapToOtherMac) {
-        Text("or press \(ShortcutDisplayName.make(shortcut))")
-      } else {
-        Button("Add a keyboard shortcut") {
-          openSettings()
-        }
-        .buttonStyle(.plain)
-        .underline()
-      }
-      Spacer()
-    }
-    .font(.system(size: 10, weight: .medium, design: .monospaced))
-    .foregroundStyle(OtherMacStyle.ink.opacity(0.58))
-    .padding(.top, 13)
-    .padding(.bottom, 17)
-  }
-
   private var footer: some View {
-    HStack(spacing: 12) {
-      Button("Setup…", systemImage: "sparkles") {
-        openOnboarding()
-      }
+    HStack {
       Button("Settings…", systemImage: "gearshape") {
         openSettings()
       }
-      Button("Hide Icon", systemImage: "eye.slash") {
-        hideMenuBarIcon()
-      }
+
       Spacer()
-      Button {
-        NSApplication.shared.terminate(nil)
-      } label: {
-        Image(systemName: "power")
+
+      if KeyboardShortcuts.getShortcut(for: .swapToOtherMac) == nil {
+        Button("Add shortcut") {
+          openSettings()
+        }
       }
-      .accessibilityLabel("Quit Other Mac")
+
+      Menu {
+        Button("Run Setup Again…", systemImage: "sparkles") {
+          openOnboarding()
+        }
+        Button("Hide Menu Bar Icon", systemImage: "eye.slash") {
+          hideMenuBarIcon()
+        }
+        Divider()
+        Button("Quit Other Mac", systemImage: "power") {
+          NSApplication.shared.terminate(nil)
+        }
+      } label: {
+        Image(systemName: "ellipsis")
+          .frame(width: 24, height: 20)
+          .contentShape(Rectangle())
+      }
+      .menuStyle(.borderlessButton)
+      .menuIndicator(.hidden)
+      .fixedSize()
+      .accessibilityLabel("More options")
     }
     .buttonStyle(.plain)
     .font(.system(size: 11, weight: .medium))
     .foregroundStyle(OtherMacStyle.ink.opacity(0.65))
+    .padding(.top, 16)
+    .overlay(alignment: .top) {
+      Rectangle()
+        .fill(OtherMacStyle.ink.opacity(0.11))
+        .frame(height: 1)
+    }
   }
 
   private var headlineText: String {
@@ -146,18 +221,20 @@ struct PopoverView: View {
 
   private var buttonLabel: String {
     switch model.swapState {
-    case .working: "Swapping…"
-    case .success: "Swapped"
-    default: "Swap"
+    case .working: "Switching…"
+    case .success: "Switched"
+    default: "Switch to Other Mac"
     }
   }
 
-  private var buttonIcon: String {
-    switch model.swapState {
-    case .working: "ellipsis"
-    case .success: "checkmark"
-    default: "arrow.triangle.2.circlepath"
+  private var shortcutDisplayName: String? {
+    guard
+      model.swapState == .idle,
+      let shortcut = KeyboardShortcuts.getShortcut(for: .swapToOtherMac)
+    else {
+      return nil
     }
+    return ShortcutDisplayName.make(shortcut)
   }
 
   private var statusColor: Color {

@@ -47,13 +47,75 @@ struct AppModelTests {
     model.completeOnboarding()
 
     #expect(model.settings.completedOnboarding)
+    #expect(!model.needsOnboarding)
     #expect(store.load().completedOnboarding)
+    #expect(
+      store.load().completedOnboardingVersion == AppModel.currentOnboardingVersion
+    )
 
     try? FileManager.default.removeItem(at: root)
   }
 
   @Test
-  func configuredVersionTwoUpgradeDoesNotRepeatOnboarding() throws {
+  func shortcutIsCapturedWithoutSwitchingWhileOnboardingIsPresented() async throws {
+    let backend = RecordingDisplayBackend()
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let model = AppModel(
+      backend: backend,
+      store: SettingsStore(applicationSupportURL: root)
+    )
+    await model.refreshDisplays()
+
+    model.beginOnboarding()
+    model.handleShortcutKeyDown()
+    await model.handleShortcutKeyUp()
+
+    #expect(model.shortcutTestPulse == 1)
+    #expect(await backend.commands.isEmpty)
+
+    model.endOnboarding()
+    await model.handleShortcutKeyUp()
+
+    #expect(await backend.commands.count == 1)
+
+    try? FileManager.default.removeItem(at: root)
+  }
+
+  @Test
+  func upgradedSettingsShowTheCurrentOnboardingOnce() throws {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let store = SettingsStore(applicationSupportURL: root)
+    try store.save(
+      AppSettings(
+        version: 3,
+        completedOnboarding: true,
+        displayConfigs: [
+          RecordingDisplayBackend.uuid: DisplayConfiguration(
+            name: "DELL U3223QE",
+            targetInput: MonitorInput.usbC.rawValue,
+            lastKnownIndex: 1
+          )
+        ]
+      )
+    )
+
+    let model = AppModel(backend: RecordingDisplayBackend(), store: store)
+
+    #expect(model.settings.version == 4)
+    #expect(model.needsOnboarding)
+
+    model.completeOnboarding()
+
+    #expect(!model.needsOnboarding)
+    #expect(!AppModel(backend: RecordingDisplayBackend(), store: store).needsOnboarding)
+
+    try FileManager.default.removeItem(at: root)
+  }
+
+  @Test
+  func configuredVersionTwoUpgradePreservesLegacyCompletion() throws {
     let root = FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
     let store = SettingsStore(applicationSupportURL: root)
@@ -73,9 +135,10 @@ struct AppModelTests {
 
     let model = AppModel(backend: RecordingDisplayBackend(), store: store)
 
-    #expect(model.settings.version == 3)
+    #expect(model.settings.version == 4)
     #expect(model.settings.completedOnboarding)
-    #expect(store.load().version == 3)
+    #expect(model.needsOnboarding)
+    #expect(store.load().version == 4)
     #expect(store.load().completedOnboarding)
 
     try FileManager.default.removeItem(at: root)

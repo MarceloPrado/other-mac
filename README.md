@@ -99,7 +99,20 @@ or paid services. Run it from the Actions tab with a version such as `0.1.0`,
 or push a tag such as `v0.1.0`.
 
 The workflow runs the tests, builds an ad hoc signed app, creates the custom
-drag-to-Applications DMG, and uploads `Other-Mac.dmg` to GitHub Releases.
+drag-to-Applications DMG, signs a Sparkle updater archive, and publishes the
+DMG, updater archive, and `appcast.xml` to GitHub Releases. New installs still
+use the DMG; once a user has a Sparkle-enabled release, future updates are
+offered and installed from inside Other Mac.
+
+The workflow builds release notes from first-parent commit titles since the
+previous tag. A manually dispatched release can also include an optional
+user-facing Markdown highlight above that generated list. The workflow uses the
+same notes for the GitHub Release description and embeds them in the Sparkle
+appcast, so users see what changed in the update prompt before installing.
+
+The workflow requires the repository secret `SPARKLE_PRIVATE_KEY`. Its matching
+public key is embedded in `Resources/Info.plist`. Keep the private key backed up:
+losing it prevents existing installations from trusting future updates.
 
 ## Project structure
 

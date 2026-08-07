@@ -10,12 +10,15 @@ test -x "$CONTENTS_DIR/MacOS/OtherMac"
 test -x "$CONTENTS_DIR/Resources/m1ddc"
 test -f "$CONTENTS_DIR/Resources/AppIcon.icns"
 test -f "$CONTENTS_DIR/Resources/m1ddc-LICENSE.txt"
+test -d "$CONTENTS_DIR/Frameworks/Sparkle.framework"
 test ! -e "$APP_PATH/OtherMac_OtherMac.bundle"
 test ! -e "$APP_PATH/KeyboardShortcuts_KeyboardShortcuts.bundle"
 
 test "$(plutil -extract CFBundleIdentifier raw "$CONTENTS_DIR/Info.plist")" \
   = "com.marceloprado.othermac"
 test "$(plutil -extract LSUIElement raw "$CONTENTS_DIR/Info.plist")" = "true"
+test "$(plutil -extract SUEnableAutomaticChecks raw "$CONTENTS_DIR/Info.plist")" = "true"
+test -n "$(plutil -extract SUPublicEDKey raw "$CONTENTS_DIR/Info.plist")"
 
 if [ -n "$EXPECTED_VERSION" ]; then
   test "$(plutil -extract CFBundleShortVersionString raw "$CONTENTS_DIR/Info.plist")" \
@@ -25,5 +28,7 @@ fi
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign --verify --strict --verbose=2 "$CONTENTS_DIR/MacOS/OtherMac"
 codesign --verify --strict --verbose=2 "$CONTENTS_DIR/Resources/m1ddc"
+codesign --verify --deep --strict --verbose=2 \
+  "$CONTENTS_DIR/Frameworks/Sparkle.framework"
 
 echo "PASS: app resources, metadata, sealed resources, and signatures"

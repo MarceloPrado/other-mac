@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsView: View {
   @ObservedObject var model: AppModel
   let openOnboarding: () -> Void
+  let checkForUpdates: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -84,6 +85,13 @@ struct SettingsView: View {
         openOnboarding()
       }
       Text("Review the monitor, input, and shortcut for this Mac.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      Button("Check for Updates…") {
+        checkForUpdates()
+      }
+      Text("Other Mac also checks periodically and will offer new releases automatically.")
         .font(.caption)
         .foregroundStyle(.secondary)
     }

@@ -6,20 +6,24 @@ import SwiftUI
 @MainActor
 final class StatusBarController: NSObject {
   private let model: AppModel
+  private let checkForUpdates: @MainActor () -> Void
   private var settingsWindow: SettingsWindowController?
   private var onboardingWindow: OnboardingWindowController?
   private let popover = NSPopover()
   private var statusItem: NSStatusItem?
   private var cancellables: Set<AnyCancellable> = []
 
-  init(model: AppModel) {
+  init(
+    model: AppModel,
+    checkForUpdates: @escaping @MainActor () -> Void
+  ) {
     self.model = model
+    self.checkForUpdates = checkForUpdates
     super.init()
 
     popover.behavior = .transient
     popover.animates = true
-    popover.contentSize = NSSize(width: 338, height: 370)
-    popover.contentViewController = NSHostingController(
+    let contentViewController = NSHostingController(
       rootView: PopoverView(
         model: model,
         openOnboarding: { [weak self] in
@@ -37,6 +41,8 @@ final class StatusBarController: NSObject {
         }
       )
     )
+    contentViewController.sizingOptions = [.preferredContentSize]
+    popover.contentViewController = contentViewController
 
     model.$settings
       .map(\.showMenuBarIcon)
@@ -81,7 +87,7 @@ final class StatusBarController: NSObject {
   func restoreAndOpen() {
     model.setShowMenuBarIcon(true)
     show()
-    if model.settings.completedOnboarding {
+    if !model.needsOnboarding {
       openPopover()
     } else {
       showOnboarding()
@@ -117,6 +123,9 @@ final class StatusBarController: NSObject {
         model: model,
         openOnboarding: { [weak self] in
           self?.showOnboarding()
+        },
+        checkForUpdates: { [weak self] in
+          self?.checkForUpdates()
         }
       )
     }

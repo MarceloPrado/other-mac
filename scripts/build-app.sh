@@ -6,22 +6,25 @@ APP_DIR="$ROOT_DIR/dist/Other Mac.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
+FRAMEWORKS_DIR="$CONTENTS_DIR/Frameworks"
+SPARKLE_FRAMEWORK="$ROOT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 APP_VERSION=${APP_VERSION:-0.1.0}
 BUILD_NUMBER=${BUILD_NUMBER:-1}
 CODE_SIGN_IDENTITY=${CODE_SIGN_IDENTITY:--}
 
 cd "$ROOT_DIR"
-swift build -c release
+swift build --disable-keychain -c release
 
 if [ -d "$APP_DIR" ]; then
   rm -r "$APP_DIR"
 fi
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$FRAMEWORKS_DIR"
 cp "$ROOT_DIR/.build/release/OtherMac" "$MACOS_DIR/OtherMac"
 cp "$ROOT_DIR/Resources/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$ROOT_DIR/Sources/OtherMac/Resources/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 cp "$ROOT_DIR/Sources/OtherMac/Resources/m1ddc" "$RESOURCES_DIR/m1ddc"
 cp "$ROOT_DIR/Sources/OtherMac/Resources/m1ddc-LICENSE.txt" "$RESOURCES_DIR/m1ddc-LICENSE.txt"
+ditto "$SPARKLE_FRAMEWORK" "$FRAMEWORKS_DIR/Sparkle.framework"
 chmod 755 "$MACOS_DIR/OtherMac" "$RESOURCES_DIR/m1ddc"
 
 /usr/bin/plutil -replace CFBundleShortVersionString -string "$APP_VERSION" "$CONTENTS_DIR/Info.plist"

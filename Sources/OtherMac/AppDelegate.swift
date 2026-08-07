@@ -1,15 +1,29 @@
 import AppKit
 import KeyboardShortcuts
+import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private let model = AppModel()
   private var statusBarController: StatusBarController?
+  private var updaterController: SPUStandardUpdaterController?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApplication.shared.setActivationPolicy(.accessory)
 
-    let statusBar = StatusBarController(model: model)
+    let updater = SPUStandardUpdaterController(
+      startingUpdater: true,
+      updaterDelegate: nil,
+      userDriverDelegate: nil
+    )
+    updaterController = updater
+
+    let statusBar = StatusBarController(
+      model: model,
+      checkForUpdates: { [weak updater] in
+        updater?.checkForUpdates(nil)
+      }
+    )
     statusBarController = statusBar
 
     if model.settings.showMenuBarIcon {
@@ -19,16 +33,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     LegacyShortcutMigrator.migrateIfNeeded(
       applicationSupportURL: model.applicationSupportURL
     )
+    KeyboardShortcuts.onKeyDown(for: .swapToOtherMac) { [weak model] in
+      Task { @MainActor in
+        model?.handleShortcutKeyDown()
+      }
+    }
     KeyboardShortcuts.onKeyUp(for: .swapToOtherMac) { [weak model] in
       Task { @MainActor in
-        await model?.swap()
+        await model?.handleShortcutKeyUp()
       }
     }
 
     model.start()
     model.reconcileLaunchAtLogin()
 
-    if !model.settings.completedOnboarding {
+    if model.needsOnboarding {
       DispatchQueue.main.async {
         statusBar.showOnboarding()
       }

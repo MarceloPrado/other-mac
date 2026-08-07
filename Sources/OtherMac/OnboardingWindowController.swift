@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class OnboardingWindowController: NSWindowController {
+final class OnboardingWindowController: NSWindowController, NSWindowDelegate {
   private let model: AppModel
   private let hostingController: NSHostingController<AnyView>
   private let onFinish: () -> Void
@@ -22,6 +22,7 @@ final class OnboardingWindowController: NSWindowController {
     window.center()
 
     super.init(window: window)
+    window.delegate = self
     hostingController.rootView = makeRootView()
   }
 
@@ -31,6 +32,7 @@ final class OnboardingWindowController: NSWindowController {
   }
 
   func present() {
+    model.beginOnboarding()
     hostingController.rootView = makeRootView()
     showWindow(nil)
     window?.center()
@@ -51,5 +53,9 @@ final class OnboardingWindowController: NSWindowController {
     model.completeOnboarding()
     close()
     onFinish()
+  }
+
+  func windowWillClose(_ notification: Notification) {
+    model.endOnboarding()
   }
 }
