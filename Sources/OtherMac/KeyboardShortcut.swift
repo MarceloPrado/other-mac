@@ -27,4 +27,32 @@ enum ShortcutDisplayName {
     }
     return result + "Space"
   }
+
+  static func keycaps(_ shortcut: KeyboardShortcuts.Shortcut) -> [String] {
+    let modifiers = shortcut.modifiers
+    var result: [String] = []
+
+    if modifiers.contains(.control) {
+      result.append("⌃")
+    }
+    if modifiers.contains(.option) {
+      result.append("⌥")
+    }
+    if modifiers.contains(.shift) {
+      result.append("⇧")
+    }
+    if modifiers.contains(.command) {
+      result.append("⌘")
+    }
+
+    var key = make(shortcut)
+    for modifier in ["⌃", "⌥", "⇧", "⌘"] {
+      key = key.replacingOccurrences(of: modifier, with: "")
+    }
+    if !key.isEmpty {
+      result.append(key)
+    }
+
+    return result
+  }
 }

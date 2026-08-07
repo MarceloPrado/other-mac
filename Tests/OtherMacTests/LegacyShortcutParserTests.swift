@@ -21,5 +21,16 @@ struct LegacyShortcutParserTests {
     #expect(shortcut?.key == .space)
     #expect(shortcut?.modifiers == [.option])
     #expect(shortcut.map(ShortcutDisplayName.make) == "⌥Space")
+    #expect(shortcut.map(ShortcutDisplayName.keycaps) == ["⌥", "Space"])
+  }
+
+  @Test
+  func separatesAShortcutIntoRaycastStyleKeycaps() {
+    let shortcut = LegacyShortcutParser.parse("Command+Control+Alt+Return")
+
+    #expect(
+      shortcut.map(ShortcutDisplayName.keycaps)
+        == ["⌃", "⌥", "⌘", "↩"]
+    )
   }
 }

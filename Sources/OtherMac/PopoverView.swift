@@ -127,26 +127,34 @@ struct PopoverView: View {
         await model.swap()
       }
     } label: {
-      ZStack {
+      HStack(spacing: 10) {
         Text(buttonLabel)
           .font(.system(size: 16, weight: .semibold, design: .serif))
           .lineLimit(1)
           .minimumScaleFactor(0.9)
-          .frame(maxWidth: .infinity)
+          .layoutPriority(1)
 
-        HStack {
-          Spacer()
-          if let shortcutDisplayName {
-            Text(shortcutDisplayName)
+        Spacer(minLength: 8)
+
+        if let shortcutKeycaps {
+          HStack(spacing: 3) {
+            ForEach(Array(shortcutKeycaps.enumerated()), id: \.offset) { _, keycap in
+              Text(keycap)
               .font(.system(size: 9, weight: .semibold, design: .rounded))
-              .padding(.horizontal, 7)
-              .padding(.vertical, 5)
-              .background(Color.white.opacity(0.17))
+              .frame(minWidth: 21)
+              .padding(.horizontal, keycap.count > 1 ? 3 : 0)
+              .frame(height: 22)
+              .background(Color.white.opacity(0.16))
+              .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                  .stroke(Color.white.opacity(0.12), lineWidth: 1)
+              }
               .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            }
           }
         }
       }
-      .padding(.horizontal, 18)
+      .padding(.horizontal, 14)
       .frame(maxWidth: .infinity)
       .frame(height: 58)
       .foregroundStyle(Color.white)
@@ -227,14 +235,14 @@ struct PopoverView: View {
     }
   }
 
-  private var shortcutDisplayName: String? {
+  private var shortcutKeycaps: [String]? {
     guard
       model.swapState == .idle,
       let shortcut = KeyboardShortcuts.getShortcut(for: .swapToOtherMac)
     else {
       return nil
     }
-    return ShortcutDisplayName.make(shortcut)
+    return ShortcutDisplayName.keycaps(shortcut)
   }
 
   private var statusColor: Color {
