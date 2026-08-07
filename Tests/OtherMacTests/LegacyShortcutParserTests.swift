@@ -28,9 +28,32 @@ struct LegacyShortcutParserTests {
   func separatesAShortcutIntoRaycastStyleKeycaps() {
     let shortcut = LegacyShortcutParser.parse("Command+Control+Alt+Return")
 
+    #expect(shortcut.map(ShortcutDisplayName.make) == "⌃⌥⌘↩")
     #expect(
       shortcut.map(ShortcutDisplayName.keycaps)
         == ["⌃", "⌥", "⌘", "↩"]
     )
+  }
+
+  @Test
+  func formatsSpecialKeysWithoutPackageResources() {
+    let shortcut = KeyboardShortcuts.Shortcut(
+      .leftArrow,
+      modifiers: [.control, .option]
+    )
+
+    #expect(ShortcutDisplayName.make(shortcut) == "⌃⌥←")
+    #expect(ShortcutDisplayName.keycaps(shortcut) == ["⌃", "⌥", "←"])
+  }
+
+  @Test
+  func formatsUnknownKeysWithoutUsingThePackageDescription() {
+    let shortcut = KeyboardShortcuts.Shortcut(
+      carbonKeyCode: 999,
+      carbonModifiers: 0
+    )
+
+    #expect(ShortcutDisplayName.make(shortcut) == "Key 999")
+    #expect(ShortcutDisplayName.keycaps(shortcut) == ["Key 999"])
   }
 }

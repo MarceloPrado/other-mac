@@ -152,6 +152,13 @@ final class StatusBarController: NSObject {
     guard statusItem?.isVisible == true, statusItem?.button != nil else {
       return "FAIL: status item was not visible after show"
     }
+    let specialKeyShortcut = KeyboardShortcuts.Shortcut(
+      .return,
+      modifiers: [.command, .control, .option]
+    )
+    guard ShortcutDisplayName.make(specialKeyShortcut) == "⌃⌥⌘↩" else {
+      return "FAIL: special-key shortcut display was incorrect"
+    }
     if CommandLine.arguments.contains("-KeyboardShortcuts_swapToOtherMac") {
       guard KeyboardShortcuts.getShortcut(for: .swapToOtherMac)?.key == .space else {
         return "FAIL: legacy Alt+Space shortcut was not loaded"

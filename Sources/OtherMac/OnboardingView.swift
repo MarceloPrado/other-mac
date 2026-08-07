@@ -382,7 +382,8 @@ struct OnboardingView: View {
   }
 
   private var shortcutDescription: String {
-    KeyboardShortcuts.getShortcut(for: .swapToOtherMac)?.description
+    KeyboardShortcuts.getShortcut(for: .swapToOtherMac)
+      .map(ShortcutDisplayName.make)
       ?? "your shortcut"
   }
 
