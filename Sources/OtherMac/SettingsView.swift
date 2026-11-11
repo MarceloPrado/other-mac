@@ -5,6 +5,7 @@ struct SettingsView: View {
   @ObservedObject var model: AppModel
   let openOnboarding: () -> Void
   let checkForUpdates: () -> Void
+  @State private var pairingKeyNote: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
@@ -14,6 +15,7 @@ struct SettingsView: View {
         shortcutSection
         behaviorSection
         displaysSection
+        headphonesSection
         hardwareSection
       }
       .formStyle(.grouped)
@@ -157,6 +159,95 @@ struct SettingsView: View {
       }
     }
     .padding(.vertical, 5)
+  }
+
+  @ViewBuilder
+  private var headphonesSection: some View {
+    Section("Headphones") {
+      if !model.isHeadphoneSetupStarted {
+        Button("Set Up Headphones…") {
+          model.startHeadphones()
+        }
+        Text(
+          "Send Bluetooth headphones to the other Mac along with the display. macOS will ask for Bluetooth and local network access."
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      } else {
+        Picker(
+          "Headphones",
+          selection: Binding(
+            get: { model.settings.headphoneAddress },
+            set: { model.setHeadphone(address: $0) }
+          )
+        ) {
+          Text("None").tag(String?.none)
+          ForEach(headphoneChoices) { device in
+            Text(device.name).tag(String?.some(device.address))
+          }
+        }
+
+        Toggle(
+          "Move with the display",
+          isOn: Binding(
+            get: { model.settings.moveHeadphones },
+            set: { model.setMoveHeadphones($0) }
+          )
+        )
+        .disabled(model.settings.headphoneAddress == nil)
+        Text("Turn this off to look at the other Mac while your audio stays here.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        LabeledContent("Other Mac") {
+          Text(
+            model.linkedMacNames.isEmpty
+              ? "Not linked"
+              : model.linkedMacNames.joined(separator: ", ")
+          )
+          .foregroundStyle(.secondary)
+        }
+
+        HStack {
+          Button("Copy Pairing Key") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(model.pairingKey, forType: .string)
+            pairingKeyNote = "Copied. Paste it into Other Mac on your other Mac."
+          }
+          Button("Paste Pairing Key") {
+            let pasted = NSPasteboard.general.string(forType: .string) ?? ""
+            pairingKeyNote =
+              model.usePairingKey(pasted)
+              ? "Pairing key saved."
+              : "The clipboard doesn’t hold a pairing key."
+          }
+        }
+        Text(
+          pairingKeyNote
+            ?? "Both Macs need Other Mac open, the headphones paired, and the same pairing key."
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  /// Paired audio devices, plus the saved choice if it is no longer paired.
+  private var headphoneChoices: [BluetoothDevice] {
+    var choices = model.headphoneDevices
+    if let address = model.settings.headphoneAddress,
+      !choices.contains(where: { $0.address == address })
+    {
+      choices.append(
+        BluetoothDevice(
+          address: address,
+          name: model.settings.headphoneName ?? address,
+          connected: false,
+          isAudio: true
+        )
+      )
+    }
+    return choices
   }
 
   private var hardwareSection: some View {

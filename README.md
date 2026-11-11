@@ -25,6 +25,10 @@ There is no account, analytics, or background service.
 7. Open Other Mac, choose the monitor input used by your second computer, and
    record a shortcut.
 
+Other Mac checks for new versions automatically and shows the release notes
+before installing an update. You can also choose **Check for Updates…** in the
+app at any time.
+
 Other Mac uses a free ad hoc signature. This verifies the app bundle is
 internally consistent, but it does not identify me to Gatekeeper. Gatekeeper
 asks you to approve the downloaded DMG and the copied app separately because
@@ -67,6 +71,27 @@ Common input values:
 If your monitor has a USB/KVM hub, configure it to follow the active input so
 your keyboard and mouse switch with the picture.
 
+## Headphones
+
+Other Mac can also send your Bluetooth headphones to the other Mac when you
+switch. This is off until you set it up, and needs Other Mac open on both Macs.
+
+1. Pair the headphones with both Macs in System Settings.
+2. On each Mac, open **Settings → Headphones**, choose **Set Up Headphones…**,
+   and pick the headphones. macOS asks for Bluetooth and local network access.
+3. On one Mac choose **Copy Pairing Key**. Get the key to the other Mac and
+   choose **Paste Pairing Key** there.
+
+When you switch, the Mac you are leaving disconnects the headphones and the
+other Mac connects them and makes them its sound output. Turn off the switch
+next to the headphones in the menu bar popover to keep your audio where it is,
+for example to look at the other Mac during a call. **Bring Here** pulls the
+headphones to the Mac you are on.
+
+The two Macs find each other on your local network and talk over a connection
+encrypted with the pairing key. Nothing leaves your network. If the other Mac
+can't be reached, the headphones stay where they are.
+
 ## Build from source
 
 ```sh
@@ -83,7 +108,7 @@ sh scripts/package-dmg.sh
 open dist/Other-Mac.dmg
 ```
 
-Verify the packaged resources, signatures, clean-install lifecycle, and v0.1.0
+Verify the packaged resources, signatures, clean-install lifecycle, and legacy
 preference upgrade with:
 
 ```sh
@@ -100,19 +125,14 @@ or push a tag such as `v0.1.0`.
 
 The workflow runs the tests, builds an ad hoc signed app, creates the custom
 drag-to-Applications DMG, signs a Sparkle updater archive, and publishes the
-DMG, updater archive, and `appcast.xml` to GitHub Releases. New installs still
-use the DMG; once a user has a Sparkle-enabled release, future updates are
-offered and installed from inside Other Mac.
+DMG, updater archive, and `appcast.xml` to GitHub Releases. Other Mac reads that
+feed, presents the release notes, and installs new versions from inside the app.
 
 The workflow builds release notes from first-parent commit titles since the
 previous tag. A manually dispatched release can also include an optional
 user-facing Markdown highlight above that generated list. The workflow uses the
 same notes for the GitHub Release description and embeds them in the Sparkle
 appcast, so users see what changed in the update prompt before installing.
-
-The workflow requires the repository secret `SPARKLE_PRIVATE_KEY`. Its matching
-public key is embedded in `Resources/Info.plist`. Keep the private key backed up:
-losing it prevents existing installations from trusting future updates.
 
 ## Project structure
 

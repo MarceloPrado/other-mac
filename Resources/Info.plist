@@ -26,10 +26,18 @@
     <string>13.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Other Mac connects and disconnects the headphones you choose.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_othermac._tcp</string>
+    </array>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Marcelo Prado</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Other Mac finds your other Mac to hand your headphones over.</string>
     <key>SUAutomaticallyUpdate</key>
     <false/>
     <key>SUEnableAutomaticChecks</key>

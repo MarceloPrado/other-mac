@@ -12,6 +12,7 @@ struct PopoverView: View {
       brand
       headline
       route
+      headphones
       swapButton
       footer
     }
@@ -119,6 +120,85 @@ struct PopoverView: View {
         )
     }
     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+
+  @ViewBuilder
+  private var headphones: some View {
+    if model.settings.headphoneAddress != nil {
+      HStack(spacing: 10) {
+        Image(systemName: "headphones")
+          .font(.system(size: 15, weight: .medium))
+          .frame(width: 22)
+          .foregroundStyle(
+            model.settings.moveHeadphones
+              ? OtherMacStyle.coral
+              : OtherMacStyle.ink.opacity(0.45)
+          )
+          .accessibilityHidden(true)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(model.settings.headphoneName ?? "Headphones")
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .lineLimit(1)
+          Text(headphoneDetail)
+            .font(.system(size: 9, weight: .medium, design: .rounded))
+            .foregroundStyle(OtherMacStyle.ink.opacity(0.52))
+            .lineLimit(1)
+        }
+
+        Spacer(minLength: 6)
+
+        if !model.isHeadphoneConnectedHere && !model.isBringingHeadphones {
+          Button("Bring Here") {
+            Task {
+              await model.bringHeadphonesHere()
+            }
+          }
+          .buttonStyle(.plain)
+          .font(.system(size: 10, weight: .semibold, design: .rounded))
+          .foregroundStyle(OtherMacStyle.coral)
+        }
+
+        Toggle(
+          "Move headphones with the display",
+          isOn: Binding(
+            get: { model.settings.moveHeadphones },
+            set: { model.setMoveHeadphones($0) }
+          )
+        )
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .controlSize(.mini)
+        .tint(OtherMacStyle.coral)
+      }
+      .padding(.horizontal, 12)
+      .frame(height: 46)
+      .background(OtherMacStyle.paper)
+      .overlay {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .stroke(OtherMacStyle.ink.opacity(0.1), lineWidth: 1)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      .padding(.bottom, 14)
+    }
+  }
+
+  private var headphoneDetail: String {
+    if model.isBringingHeadphones {
+      return "Connecting…"
+    }
+    if model.isHeadphoneConnectedHere {
+      if !model.settings.moveHeadphones {
+        return "Stays on this Mac"
+      }
+      return model.linkedMacNames.isEmpty
+        ? "Other Mac isn’t linked, so it stays"
+        : "Goes with the display"
+    }
+    if let holder = model.headphoneHolder {
+      return "On \(holder)"
+    }
+    return "Not connected"
   }
 
   private var swapButton: some View {

@@ -11,11 +11,19 @@ final class AppModel: ObservableObject {
   @Published private(set) var swapState: SwapState = .idle
   @Published private(set) var statusMessage = "Looking for your display…"
   @Published private(set) var shortcutTestPulse = 0
+  @Published private(set) var headphoneDevices: [BluetoothDevice] = []
+  @Published private(set) var linkedMacNames: [String] = []
+  @Published private(set) var headphoneHolder: String?
+  @Published private(set) var isBringingHeadphones = false
+  @Published private(set) var isHeadphoneSetupStarted = false
 
   private let backend: any DisplayBackend
   private let store: SettingsStore
   private let launchAtLoginService: any LaunchAtLoginService
   private let isPackagedApp: Bool
+  private let pairingKeyStore: PairingKeyStore
+  private let makeHeadphoneHandoff: HeadphoneHandoffFactory
+  private var headphones: HeadphoneHandoff?
   private var resetTask: Task<Void, Never>?
   private var isOnboardingPresented = false
   private var shouldConsumeNextShortcutKeyUp = false
@@ -24,8 +32,11 @@ final class AppModel: ObservableObject {
     backend: any DisplayBackend = M1DDCBackend(),
     store: SettingsStore = SettingsStore(),
     launchAtLoginService: any LaunchAtLoginService = SystemLaunchAtLoginService(),
-    isPackagedApp: Bool = Bundle.main.bundleURL.pathExtension == "app"
+    isPackagedApp: Bool = Bundle.main.bundleURL.pathExtension == "app",
+    makeHeadphoneHandoff: @escaping HeadphoneHandoffFactory = AppModel.systemHeadphoneHandoff
   ) {
+    self.pairingKeyStore = PairingKeyStore(applicationSupportURL: store.applicationSupportURL)
+    self.makeHeadphoneHandoff = makeHeadphoneHandoff
     self.backend = backend
     self.store = store
     self.launchAtLoginService = launchAtLoginService
@@ -60,6 +71,9 @@ final class AppModel: ObservableObject {
   }
 
   func start() {
+    if settings.headphoneAddress != nil {
+      startHeadphones()
+    }
     Task {
       await refreshDisplays()
     }
@@ -120,6 +134,9 @@ final class AppModel: ObservableObject {
       }
 
       persist()
+      if settings.moveHeadphones, let address = settings.headphoneAddress {
+        headphones?.send(address)
+      }
       swapState = .success(displayCount: enabledDisplays.count)
       statusMessage = "See you on the other side."
       scheduleReset()
@@ -215,6 +232,82 @@ final class AppModel: ObservableObject {
     setLaunchAtLogin(true)
   }
 
+  // MARK: Headphones
+
+  var isHeadphoneConnectedHere: Bool {
+    guard let address = settings.headphoneAddress else { return false }
+    return headphoneDevices.contains { $0.address == address && $0.connected }
+  }
+
+  var pairingKey: String {
+    pairingKeyStore.load()
+  }
+
+  /// Starts Bluetooth and the link to the other Mac. macOS asks for both
+  /// permissions here, so this only runs once headphones are wanted.
+  func startHeadphones() {
+    guard headphones == nil else { return }
+    if settings.macID == nil {
+      settings.macID = UUID().uuidString
+      persist()
+    }
+    let handoff = makeHeadphoneHandoff(
+      settings.macID ?? UUID().uuidString,
+      Host.current().localizedName ?? ProcessInfo.processInfo.hostName,
+      pairingKeyStore.load()
+    )
+    handoff.onChange = { [weak self] in
+      self?.syncHeadphones()
+    }
+    headphones = handoff
+    isHeadphoneSetupStarted = true
+    handoff.start()
+    syncHeadphones()
+  }
+
+  func setHeadphone(address: String?) {
+    settings.headphoneAddress = address
+    settings.headphoneName = headphoneDevices.first { $0.address == address }?.name
+    persist()
+    syncHeadphones()
+  }
+
+  func setMoveHeadphones(_ isEnabled: Bool) {
+    settings.moveHeadphones = isEnabled
+    persist()
+  }
+
+  func bringHeadphonesHere() async {
+    guard let address = settings.headphoneAddress, let headphones else { return }
+    let name = settings.headphoneName ?? "the headphones"
+    if await headphones.bring(address) {
+      statusMessage = "\(name) is here."
+    } else {
+      statusMessage = "Couldn’t connect \(name)."
+    }
+  }
+
+  /// Returns false when the text isn't a pairing key.
+  func usePairingKey(_ text: String) -> Bool {
+    guard let key = PairingKeyStore.normalize(text) else { return false }
+    pairingKeyStore.save(key)
+    headphones?.updateKey(key)
+    return true
+  }
+
+  private func syncHeadphones() {
+    guard let headphones else { return }
+    headphoneDevices = headphones.devices.filter(\.isAudio)
+    linkedMacNames = headphones.linkedMacs.values.map(\.name).sorted()
+    if let address = settings.headphoneAddress {
+      headphoneHolder = headphones.holder(of: address)
+      isBringingHeadphones = headphones.busy.contains(address)
+    } else {
+      headphoneHolder = nil
+      isBringingHeadphones = false
+    }
+  }
+
   func inputLabel(_ value: Int) -> String {
     MonitorInput(rawValue: value)?.label ?? "Input \(value)"
   }
@@ -234,6 +327,23 @@ final class AppModel: ObservableObject {
       guard !Task.isCancelled else { return }
       self?.swapState = .idle
     }
+  }
+}
+
+typealias HeadphoneHandoffFactory =
+  @MainActor (_ macID: String, _ macName: String, _ pairingKey: String) -> HeadphoneHandoff
+
+extension AppModel {
+  static func systemHeadphoneHandoff(
+    macID: String,
+    macName: String,
+    pairingKey: String
+  ) -> HeadphoneHandoff {
+    HeadphoneHandoff(
+      bluetooth: SystemBluetoothBackend(),
+      transport: PeerMesh(id: macID, name: macName, key: pairingKey),
+      name: macName
+    )
   }
 }
 

@@ -10,6 +10,11 @@ lifecycle and windows; SwiftUI renders the popover, onboarding, and settings.
 - `DisplayBackend.swift` defines display I/O; `M1DDCBackend.swift` runs the
   bundled `m1ddc` helper. Keep this boundary injectable for tests.
 - `SettingsStore.swift` persists versioned JSON under Application Support.
+- `HeadphoneHandoff.swift` moves Bluetooth headphones between Macs. Its I/O is
+  injectable: `BluetoothBackend.swift` (IOBluetooth) and `PeerTransport`, whose
+  real implementation `PeerMesh.swift` links the Macs over Bonjour and TLS-PSK.
+  It starts only once headphones are set up, so macOS doesn't ask for Bluetooth
+  or local network access before then.
 - `StatusBarController.swift` owns AppKit presentation; the `*View.swift` files
   contain SwiftUI.
 - Tests live in `Tests/OtherMacTests`.
@@ -21,6 +26,9 @@ swift test --disable-keychain -j 1
 sh scripts/build-app.sh
 sh scripts/verify-app.sh "dist/Other Mac.app"
 ```
+
+`OTHER_MAC_NETWORK_TESTS=1` also runs the `PeerMesh` tests, which need local
+network access.
 
 Use two-space Swift indentation and add focused tests for behavior changes.
 Preserve settings migrations and legacy shortcut compatibility. Do not replace

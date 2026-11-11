@@ -87,6 +87,12 @@ struct AppSettings: Codable, Equatable, Sendable {
   var completedOnboarding: Bool
   var completedOnboardingVersion: Int
   var displayConfigs: [String: DisplayConfiguration]
+  /// Identifies this Mac to the other one. Created when headphones are set up.
+  var macID: String?
+  var headphoneAddress: String?
+  var headphoneName: String?
+  /// Whether the chosen headphones go to the other Mac along with the display.
+  var moveHeadphones: Bool
 
   init(
     version: Int = 4,
@@ -94,7 +100,11 @@ struct AppSettings: Codable, Equatable, Sendable {
     launchAtLogin: Bool = false,
     completedOnboarding: Bool = false,
     completedOnboardingVersion: Int = 0,
-    displayConfigs: [String: DisplayConfiguration] = [:]
+    displayConfigs: [String: DisplayConfiguration] = [:],
+    macID: String? = nil,
+    headphoneAddress: String? = nil,
+    headphoneName: String? = nil,
+    moveHeadphones: Bool = true
   ) {
     self.version = version
     self.showMenuBarIcon = showMenuBarIcon
@@ -102,6 +112,10 @@ struct AppSettings: Codable, Equatable, Sendable {
     self.completedOnboarding = completedOnboarding
     self.completedOnboardingVersion = completedOnboardingVersion
     self.displayConfigs = displayConfigs
+    self.macID = macID
+    self.headphoneAddress = headphoneAddress
+    self.headphoneName = headphoneName
+    self.moveHeadphones = moveHeadphones
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -112,6 +126,10 @@ struct AppSettings: Codable, Equatable, Sendable {
     case completedOnboarding
     case completedOnboardingVersion
     case displayConfigs
+    case macID
+    case headphoneAddress
+    case headphoneName
+    case moveHeadphones
   }
 
   init(from decoder: Decoder) throws {
@@ -131,6 +149,10 @@ struct AppSettings: Codable, Equatable, Sendable {
         [String: DisplayConfiguration].self,
         forKey: .displayConfigs
       ) ?? [:]
+    macID = try container.decodeIfPresent(String.self, forKey: .macID)
+    headphoneAddress = try container.decodeIfPresent(String.self, forKey: .headphoneAddress)
+    headphoneName = try container.decodeIfPresent(String.self, forKey: .headphoneName)
+    moveHeadphones = try container.decodeIfPresent(Bool.self, forKey: .moveHeadphones) ?? true
   }
 
   func encode(to encoder: Encoder) throws {
@@ -141,6 +163,10 @@ struct AppSettings: Codable, Equatable, Sendable {
     try container.encode(completedOnboarding, forKey: .completedOnboarding)
     try container.encode(completedOnboardingVersion, forKey: .completedOnboardingVersion)
     try container.encode(displayConfigs, forKey: .displayConfigs)
+    try container.encodeIfPresent(macID, forKey: .macID)
+    try container.encodeIfPresent(headphoneAddress, forKey: .headphoneAddress)
+    try container.encodeIfPresent(headphoneName, forKey: .headphoneName)
+    try container.encode(moveHeadphones, forKey: .moveHeadphones)
   }
 }
 
